@@ -1,0 +1,34 @@
+rules_version = '2';
+// Sicherheitsregeln für ChangThai-InLine. In der Firebase-Konsole unter Firestore → Regeln einfügen.
+// KUECHE: die E-Mail des Küchen-Benutzers (Authentication → Users), gleich wie KITCHEN_EMAIL in index.html.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isKitchen() { return signedIn() && request.auth.token.email == "KUECHE"; }
+
+    match /days/{day} {
+      // Tageszähler: nur um genau 1 erhöhen
+      allow read: if isKitchen();
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(["seq"]) && request.resource.data.seq == 1;
+      allow update: if signedIn() && request.resource.data.keys().hasOnly(["seq"]) && request.resource.data.seq == resource.data.seq + 1;
+      allow delete: if isKitchen();
+
+      match /orders/{orderId} {
+        allow read: if isKitchen() || (signedIn() && resource.data.uid == request.auth.uid);
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(["name", "items", "total", "src", "no", "uid", "status", "t"])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.status == "neu"
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 20
+          && request.resource.data.items is list && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 20
+          && request.resource.data.total is number
+          && request.resource.data.t == request.time
+          && request.resource.data.no == getAfter(/databases/$(database)/documents/days/$(day)).data.seq;
+        // Nur die Küche ändert den Status
+        allow update: if isKitchen() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
+          && request.resource.data.status in ["neu", "arbeit", "fertig"];
+        allow delete: if isKitchen();
+      }
+    }
+  }
+}

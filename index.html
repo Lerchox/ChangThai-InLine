@@ -138,8 +138,11 @@ input[type=text],input[type=password],input[type=tel]{width:100%;border:1px soli
 /* =========================================================================
    Einstellungen
    ========================================================================= */
-// Firebase-Konfiguration. Solange null: Testmodus (Bestellungen bleiben auf diesem Gerät).
+// Firebase-Konfiguration (aus der Firebase-Konsole, nicht geheim). Solange null: Testmodus,
+// d.h. Bestellungen bleiben in diesem Browser.
 const FIREBASE = null;
+// Anmeldename der Küche in Firebase (Authentication → Users). Das Passwort ist die Küchen-PIN.
+const KITCHEN_EMAIL = "";
 // Küchen-PIN im Testmodus.
 const TEST_PIN = "1234";
 // Wochenmenü: zuerst aus der Zmittag-App (dieselbe Datei), sonst die eigene Kopie.
@@ -198,9 +201,62 @@ const TestStore = (() => {
     watchDay(cb) { const f = db => cb(db.orders.slice()); subs.add(f); f(read()); return () => subs.delete(f); },
     async setStatus(id, status) { const db = read(); const o = db.orders.find(x => x.id === id); if (o) { o.status = status; o["t_" + status] = Date.now(); write(db); } },
     async clearDay() { write({ day: today(), seq: 0, orders: [] }); },
+    async unlockKitchen(pin) { return pin === TEST_PIN; },
+    isKitchen() { return ss.get("ct-k") === "1"; },
   };
 })();
-const Store = TestStore; // Firebase-Anbindung folgt, sobald das Projekt existiert
+
+/* Firebase: days/{JJJJ-MM-TT} hält den Tageszähler, days/{tag}/orders/{id} die Bestellungen.
+   Kunden melden sich anonym an und sehen nur ihre eigene Bestellung, die Küche meldet sich mit PIN an. */
+async function FireStore() {
+  const V = "10.14.1", base = `https://www.gstatic.com/firebasejs/${V}/`;
+  const [{ initializeApp }, A, F] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js")]);
+  const app = initializeApp(FIREBASE);
+  const auth = A.getAuth(app), db = F.getFirestore(app);
+  await auth.authStateReady();
+  const ensureUser = async () => auth.currentUser || (await A.signInAnonymously(auth)).user;
+  const ref = id => { const [day, oid] = id.split("/"); return F.doc(db, "days", day, "orders", oid); };
+  const toOrder = (d, day) => { const o = d.data(); return { ...o, id: `${day}/${d.id}`, t: o.t?.toMillis?.() ?? Date.now() }; };
+  return {
+    mode: "firebase",
+    async submit(o) {
+      const user = await ensureUser(), day = today();
+      const dayRef = F.doc(db, "days", day), oRef = F.doc(F.collection(dayRef, "orders"));
+      const no = await F.runTransaction(db, async tx => {
+        const snap = await tx.get(dayRef);
+        const no = (snap.exists() ? snap.data().seq : 0) + 1;
+        tx.set(dayRef, { seq: no });
+        tx.set(oRef, { ...o, no, uid: user.uid, status: "neu", t: F.serverTimestamp() });
+        return no;
+      });
+      return { id: `${day}/${oRef.id}`, no };
+    },
+    watchOrder(id, cb) {
+      let stop = () => {};
+      ensureUser().then(() => { stop = F.onSnapshot(ref(id), d => cb(d.exists() ? toOrder(d, id.split("/")[0]) : null), () => cb(null)); });
+      return () => stop();
+    },
+    watchDay(cb) {
+      const day = today();
+      return F.onSnapshot(F.collection(db, "days", day, "orders"), qs => cb(qs.docs.map(d => toOrder(d, day))), e => toast("Verbindung zur Küche unterbrochen"));
+    },
+    async setStatus(id, status) { await F.updateDoc(ref(id), { status }); },
+    async unlockKitchen(pin) {
+      try { await A.signInWithEmailAndPassword(auth, KITCHEN_EMAIL, pin); return true; } catch (e) { return false; }
+    },
+    isKitchen() { return !!auth.currentUser && !auth.currentUser.isAnonymous; },
+    // Datenschutz: Bestellungen von früheren Tagen löschen (läuft beim Öffnen der Küche)
+    async cleanup() {
+      const old = await F.getDocs(F.query(F.collection(db, "days"), F.where(F.documentId(), "<", today())));
+      for (const d of old.docs) {
+        const os = await F.getDocs(F.collection(d.ref, "orders"));
+        await Promise.all(os.docs.map(x => F.deleteDoc(x.ref)));
+        await F.deleteDoc(d.ref);
+      }
+    },
+  };
+}
+let Store = TestStore;
 
 /* =========================================================================
    Kundenseite
@@ -393,7 +449,7 @@ function render() {
   draft = null; renderSheet();
   if (route() === "kueche") {
     kiosk = false;
-    if (kUnlocked || ss.get("ct-k") === "1") { if (!kUnlocked) startKitchen(); else vKitchen(); } else vPin();
+    if (kUnlocked || Store.isKitchen()) { if (!kUnlocked) startKitchen(); else vKitchen(); } else vPin();
     return;
   }
   kUnwatch?.(); kUnwatch = null; kUnlocked = false;
@@ -428,13 +484,21 @@ document.addEventListener("click", e => {
 document.addEventListener("submit", e => {
   if (e.target.id !== "pinForm") return;
   e.preventDefault();
-  if ($("#pin").value === TEST_PIN) startKitchen();
-  else { $("#pin").value = ""; toast("PIN falsch"); }
+  Store.unlockKitchen($("#pin").value).then(ok => {
+    if (ok) { if (Store.mode === "firebase") Store.cleanup().catch(() => {}); startKitchen(); }
+    else { $("#pin").value = ""; toast("PIN falsch"); }
+  });
 });
 addEventListener("hashchange", render);
 
-loadMenu().then(m => { M = m; render(); });
-render();
+(async () => {
+  if (FIREBASE) {
+    try { Store = await FireStore(); }
+    catch (e) { $("#app").innerHTML = `<div class="wrap"><p class="note" style="margin-top:20px">Keine Verbindung. Bitte Internet prüfen und die Seite neu laden.</p></div>`; return; }
+  }
+  render();
+  M = await loadMenu(); if (!current && route() === "kunde" && !$(".ticket")) render();
+})();
 if ("serviceWorker" in navigator && location.protocol === "https:" && !location.hostname.endsWith("claude.ai")) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
