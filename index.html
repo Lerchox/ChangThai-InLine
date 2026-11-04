@@ -138,11 +138,19 @@ input[type=text],input[type=password],input[type=tel]{width:100%;border:1px soli
 /* =========================================================================
    Einstellungen
    ========================================================================= */
-// Firebase-Konfiguration (aus der Firebase-Konsole, nicht geheim). Solange null: Testmodus,
-// d.h. Bestellungen bleiben in diesem Browser.
-const FIREBASE = null;
+// Firebase-Konfiguration (aus der Firebase-Konsole, nicht geheim).
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBun4UNQJjTbKk2rHWikx5hDwkgqQPAC-c",
+  authDomain: "changthai-inline.firebaseapp.com",
+  projectId: "changthai-inline",
+  storageBucket: "changthai-inline.firebasestorage.app",
+  messagingSenderId: "849876003616",
+  appId: "1:849876003616:web:815a8e022d7706b1514545",
+};
 // Anmeldename der Küche in Firebase (Authentication → Users). Das Passwort ist die Küchen-PIN.
+// Solange leer: Testmodus, d.h. Bestellungen bleiben in diesem Browser.
 const KITCHEN_EMAIL = "";
+const FIREBASE = KITCHEN_EMAIL ? FIREBASE_CONFIG : null;
 // Küchen-PIN im Testmodus.
 const TEST_PIN = "1234";
 // Wochenmenü: zuerst aus der Zmittag-App (dieselbe Datei), sonst die eigene Kopie.
