@@ -157,6 +157,8 @@ const TEST_PIN = "1234";
 const MENU_URLS = ["https://lerchox.github.io/changthai-zmittag/menu.json", "menu.json"];
 // Kiosk (Tablet am Truck): nach so vielen Sekunden zurück auf Start.
 const KIOSK_RESET_S = 25;
+// Zahlungsarten am Tresen (Text für die Kundenseite).
+const PAYMENT = "TWINT oder Karte";
 
 /* =========================================================================
    Hilfen
@@ -296,7 +298,7 @@ function vOrder() {
     ${cart.length ? `<h2>Deine Bestellung</h2><div class="cart">${cart.map((it, i) => `<div class="line"><span class="txt"><b class="num">${it.qty}×</b> ${esc(labelOf(it))} · ${esc(it.spice)}<br><span class="muted small num">${chf(unit(it) * it.qty)}</span></span><button class="x" data-del="${i}" aria-label="Entfernen">Entfernen</button></div>`).join("")}</div>
     <h2><label for="name">Dein Vorname</label></h2>
     <input type="text" id="name" autocomplete="given-name" maxlength="20" placeholder="z.B. Andrea" value="${esc(name)}">
-    <p class="note" style="margin-top:12px">Bezahlt wird am Tresen mit TWINT oder bar. Wir speichern nur deinen Vornamen und die Bestellung und löschen beides am Ende des Tages.</p>` : `<p class="muted small" style="margin-top:16px">Tippe auf ein Gericht, um es zu wählen.</p>`}
+    <p class="note" style="margin-top:12px">Bezahlt wird am Tresen mit ${PAYMENT}. Wir speichern nur deinen Vornamen und die Bestellung und löschen beides am Ende des Tages.</p>` : `<p class="muted small" style="margin-top:16px">Tippe auf ein Gericht, um es zu wählen.</p>`}
   </div>
   ${cart.length ? `<div class="bar"><div class="in"><span class="sum num">${chf(cartTotal())}</span><button class="btn primary big" id="send">Bestellung abschicken</button></div></div>` : ""}`;
 }
@@ -314,7 +316,7 @@ function vTicket(o) {
     </div>
     ${o ? `<h2>Bestellt</h2><div class="cart">${o.items.map(it => `<div class="line"><span class="txt"><b class="num">${it.qty}×</b> ${esc(it.label)} · ${esc(it.spice)}</span><span class="num">${chf(it.price * it.qty)}</span></div>`).join("")}</div>
     <p style="font-family:var(--f-display);font-weight:800;font-size:1.3rem;text-align:right" class="num">Total ${chf(o.total)}</p>
-    <p class="note">${ready ? "Komm an den Tresen und nenne deine Nummer." : "Bezahlt wird am Tresen mit TWINT oder bar. Wir rufen deine Nummer auf, sobald dein Essen bereit ist. Diese Seite aktualisiert sich von selbst."}</p>` : `<p class="muted">Bestellung nicht mehr gefunden. Sie wurde vermutlich am Ende des Tages gelöscht.</p>`}
+    <p class="note">${ready ? "Komm an den Tresen und nenne deine Nummer." : `Bezahlt wird am Tresen mit ${PAYMENT}. Wir rufen deine Nummer auf, sobald dein Essen bereit ist. Diese Seite aktualisiert sich von selbst.`}</p>` : `<p class="muted">Bestellung nicht mehr gefunden. Sie wurde vermutlich am Ende des Tages gelöscht.</p>`}
     <div style="margin-top:16px">${kiosk ? `<button class="btn primary big" id="newOrder">Fertig <span class="num" id="kioskCount"></span></button>` : `<button class="btn big" id="newOrder">Neue Bestellung</button>`}</div>
   </div>`;
 }
