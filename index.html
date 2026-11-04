@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ChangThai bestellen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Beim Anstehen am ChangThai-Foodtruck schon bestellen: Menü wählen, Nummer erhalten, am Tresen bezahlen.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#F3F5F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111813" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChangThai">
+<style>html{-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Layout: Kunde = einspaltige Handy-Seite mit Bestellleiste unten; Küche = breites Kartenraster für Tablet */
+:root{
+  --bg:#F3F5F1; --surface:#FFFFFF; --ink:#18261D; --muted:#5E6B62; --line:#DCE2DA;
+  --basil:#2E6A40; --basil-soft:#E3EEE5; --chili:#C7402A; --chili-soft:#F8E1DC; --curry:#D99A1E; --curry-soft:#FBF0D6;
+  --f-display:"Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111813; --surface:#19231C; --ink:#E7EEE8; --muted:#9AA89E; --line:#2B382F;
+  --basil:#6FBF85; --basil-soft:#1F3326; --chili:#F0735B; --chili-soft:#3A221D; --curry:#EDB84A; --curry-soft:#33291A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111813; --surface:#19231C; --ink:#E7EEE8; --muted:#9AA89E; --line:#2B382F;
+  --basil:#6FBF85; --basil-soft:#1F3326; --chili:#F0735B; --chili-soft:#3A221D; --curry:#EDB84A; --curry-soft:#33291A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 140px}
+.wrap.wide{max-width:1200px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);margin-bottom:14px;display:flex;align-items:center;gap:12px}
+header img{width:46px;height:46px;border-radius:12px;background:#fff;flex:none}
+header .t{flex:1;min-width:0}
+header h1{font-family:var(--f-display);font-weight:800;font-size:1.45rem;margin:0;letter-spacing:-.01em;line-height:1.1}
+header p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
+h2{font-family:var(--f-display);font-weight:600;font-size:1.15rem;margin:22px 0 8px;text-wrap:balance}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.muted{color:var(--muted)} .small{font-size:.85rem} .num{font-variant-numeric:tabular-nums}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--curry);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:10px 18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn.primary{background:var(--basil);border-color:var(--basil);color:var(--bg)}
+.btn.chili{background:var(--chili);border-color:var(--chili);color:var(--bg)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 12px;font-size:.85rem}
+.btn.big{padding:16px 22px;font-size:1.15rem;width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+.stack{display:grid;gap:10px}
+input[type=text],input[type=password],input[type=tel]{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px;font-size:1.1rem}
+.note{font-size:.85rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.testbar{background:var(--curry-soft);border-bottom:1px solid var(--line);font-size:.85rem;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.testbar span{flex:1;min-width:180px}
+
+/* Kunde: Gerichte */
+.dish{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.dish b{font-family:var(--f-display);font-size:1.2rem;font-weight:600;display:block}
+.dish .plus{flex:none;width:42px;height:42px;border-radius:50%;background:var(--basil);color:var(--bg);display:grid;place-items:center;font-size:1.6rem;font-weight:700}
+.cart{display:grid;gap:8px}
+.line{display:flex;gap:10px;align-items:center;background:var(--basil-soft);border-radius:10px;padding:10px 12px}
+.line .txt{flex:1;min-width:0}
+.line .x{border:0;background:transparent;color:var(--chili);font-weight:700;padding:4px 8px}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  padding-top:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar .in{max-width:560px;margin:0 auto;display:flex;gap:12px;align-items:center}
+.bar .sum{flex:none;font-family:var(--f-display);font-weight:800;font-size:1.25rem}
+
+/* Kunde: Nummer & Status */
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 18px;text-align:center;display:grid;gap:6px}
+.ticket .no{font-family:var(--f-display);font-weight:800;font-size:clamp(4.5rem,24vw,7.5rem);line-height:1;color:var(--basil);font-variant-numeric:tabular-nums}
+.ticket.ready{border-color:var(--basil);border-width:3px;background:var(--basil-soft)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.steps div{border-radius:10px;padding:8px 4px;font-weight:700;font-size:.85rem;background:var(--bg);color:var(--muted)}
+.steps div.on{background:var(--basil);color:var(--bg)}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,20,14,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.field{display:grid;gap:6px;min-width:0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 14px;font-weight:700;text-align:left}
+.seg button small{display:block;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.seg button[aria-pressed=true]{background:var(--basil);border-color:var(--basil);color:var(--bg)}
+.seg button[aria-pressed=true] small{color:var(--bg)}
+.seg.spice button[aria-pressed=true]{background:var(--chili);border-color:var(--chili)}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.4rem;font-weight:700}
+.stepper span{font-family:var(--f-display);font-size:1.4rem;min-width:2ch;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-weight:700;z-index:30}
+
+/* Küche */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;align-items:start}
+.ko{background:var(--surface);border:1px solid var(--line);border-top:8px solid var(--curry);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.ko.arbeit{border-top-color:var(--basil)}
+.ko.fresh{animation:pulse 1.2s ease-out 3}
+@keyframes pulse{50%{box-shadow:0 0 0 6px var(--curry-soft)}}
+.ko .top{display:flex;align-items:baseline;gap:10px}
+.ko .no{font-family:var(--f-display);font-weight:800;font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.ko .who{flex:1;min-width:0;font-weight:700;font-size:1.15rem;overflow-wrap:anywhere}
+.ko ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.ko li{font-size:1.15rem;line-height:1.3}
+.ko li b{font-variant-numeric:tabular-nums}
+.pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:.78rem;font-weight:700}
+.pill.hot{background:var(--chili-soft);color:var(--chili)}
+.pill.neu{background:var(--curry-soft);color:var(--ink)}
+.pill.arbeit{background:var(--basil-soft);color:var(--basil)}
+.ko .acts{display:flex;gap:8px}
+.ko .acts .btn{flex:1;padding:14px;font-size:1.05rem}
+.stats{display:flex;gap:18px;flex-wrap:wrap}
+.stats div{display:grid}
+.stats strong{font-family:var(--f-display);font-size:1.5rem;font-variant-numeric:tabular-nums}
+.done{display:grid;gap:6px}
+.done .row{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.done .row span{flex:1;min-width:0}
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+.empty img{width:120px;opacity:.85}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+@media (prefers-reduced-motion:reduce){.ko.fresh{animation:none}}
+</style>
+</head>
+<body>
+<div id="testRoot"></div>
+<div id="app"></div>
+<div id="sheetRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* =========================================================================
+   Einstellungen
+   ========================================================================= */
+// Firebase-Konfiguration. Solange null: Testmodus (Bestellungen bleiben auf diesem Gerät).
+const FIREBASE = null;
+// Küchen-PIN im Testmodus.
+const TEST_PIN = "1234";
+// Wochenmenü: zuerst aus der Zmittag-App (dieselbe Datei), sonst die eigene Kopie.
+const MENU_URLS = ["https://lerchox.github.io/changthai-zmittag/menu.json", "menu.json"];
+// Kiosk (Tablet am Truck): nach so vielen Sekunden zurück auf Start.
+const KIOSK_RESET_S = 25;
+
+/* =========================================================================
+   Hilfen
+   ========================================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const chf = n => "CHF " + Number(n).toFixed(2);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const today = () => new Date().toLocaleDateString("sv-SE"); // JJJJ-MM-TT, lokale Zeit
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const ss = {
+  get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+};
+function toast(t) {
+  $("#toastRoot").innerHTML = `<div class="toast" role="status">${esc(t)}</div>`;
+  clearTimeout(toast.t); toast.t = setTimeout(() => $("#toastRoot").innerHTML = "", 2200);
+}
+const FALLBACK_MENU = {
+  week: "", dishes: [{ id: "rotcurry", name: "Rotes Curry", short: "Rotes Curry", join: "" }, { id: "padthai", name: "Gebratene Reisnudeln (Pad Thai)", short: "Pad Thai", join: "m/" }],
+  proteins: [{ id: "ente", name: "Ente", msg: "Ente", small: 16, large: 18 }, { id: "rind", name: "Weide Rind", msg: "Rind", small: 16, large: 18 }, { id: "poulet", name: "Poulet", msg: "Poulet", small: 15, large: 17 }, { id: "vegi", name: "Vegi", msg: "Veggie", small: 12, large: 14 }, { id: "tofu", name: "Tofu", msg: "Tofu", small: 13, large: 15 }],
+  spices: ["basisscharf", "CH-scharf", "Thai-scharf"],
+};
+async function loadMenu() {
+  for (const u of MENU_URLS) {
+    try { const r = await fetch(u, { cache: "no-cache" }); if (r.ok) { const m = await r.json(); if (m.dishes?.length) return m; } } catch (e) {}
+  }
+  return FALLBACK_MENU;
+}
+
+/* =========================================================================
+   Datenablage. Gleiche Schnittstelle für Testmodus und (später) Firebase:
+   submit(order) -> {id,no} · watchOrder(id,cb) · watchDay(cb) · setStatus(id,status)
+   ========================================================================= */
+const TestStore = (() => {
+  const KEY = "ct-bestellen-test";
+  const subs = new Set();
+  const read = () => { let db = ls.get(KEY, null); if (!db || db.day !== today()) db = { day: today(), seq: 0, orders: [] }; return db; };
+  const write = db => { ls.set(KEY, db); subs.forEach(f => f(db)); };
+  addEventListener("storage", e => { if (e.key === KEY) { const db = read(); subs.forEach(f => f(db)); } });
+  // Tageswechsel: alte Bestellungen verschwinden (Datenschutz)
+  setInterval(() => { const raw = ls.get(KEY, null); if (raw && raw.day !== today()) write(read()); }, 60000);
+  return {
+    mode: "test",
+    async submit(o) { const db = read(); const no = ++db.seq; const id = uid(); db.orders.push({ ...o, id, no, status: "neu", t: Date.now() }); write(db); return { id, no }; },
+    watchOrder(id, cb) { const f = db => cb(db.orders.find(o => o.id === id) || null); subs.add(f); f(read()); return () => subs.delete(f); },
+    watchDay(cb) { const f = db => cb(db.orders.slice()); subs.add(f); f(read()); return () => subs.delete(f); },
+    async setStatus(id, status) { const db = read(); const o = db.orders.find(x => x.id === id); if (o) { o.status = status; o["t_" + status] = Date.now(); write(db); } },
+    async clearDay() { write({ day: today(), seq: 0, orders: [] }); },
+  };
+})();
+const Store = TestStore; // Firebase-Anbindung folgt, sobald das Projekt existiert
+
+/* =========================================================================
+   Kundenseite
+   ========================================================================= */
+let M = FALLBACK_MENU;
+let kiosk = false;
+let cart = [];       // [{dish, protein, size, spice, qty}]
+let draft = null;    // offenes Auswahlfenster
+let current = null;  // eigene Bestellung, die gerade angezeigt wird
+let unwatch = null, kioskTimer = null;
+
+const dishOf = id => M.dishes.find(d => d.id === id) || { short: "?", name: "?", join: "" };
+const protOf = id => M.proteins.find(p => p.id === id) || { name: "?", msg: "?", small: 0, large: 0 };
+const unit = it => { const p = protOf(it.protein); return Number(it.size === "gross" ? p.large : p.small) || 0; };
+const labelOf = it => { const d = dishOf(it.dish); return [d.short, d.join, protOf(it.protein).msg, it.size].filter(Boolean).join(" "); };
+const cartTotal = () => cart.reduce((s, it) => s + unit(it) * it.qty, 0);
+const minPrice = () => Math.min(...M.proteins.map(p => Number(p.small) || 99));
+
+function header(sub) {
+  return `<header><img src="icons/icon-192.png" alt=""><div class="t"><h1>ChangThai</h1><p>${esc(sub)}</p></div></header>`;
+}
+
+function vOrder() {
+  const sub = M.week ? `Menü der Woche · ${M.week}` : "Bestellen beim Anstehen";
+  const name = $("#name")?.value ?? (kiosk ? "" : ls.get("ct-name", ""));
+  $("#app").innerHTML = `<div class="wrap">${header(sub)}
+    <p style="margin:0 0 12px">Bestell schon jetzt. Du bekommst eine Nummer, bezahlst am Tresen und holst dein Essen ab, wenn wir deine Nummer aufrufen.</p>
+    <div class="stack">${M.dishes.map(d => `<button class="dish" data-dish="${esc(d.id)}"><span><b>${esc(d.name)}</b><span class="muted small">ab ${minPrice()}.– · klein oder gross · mit Fleisch, Tofu oder Vegi</span></span><span class="plus" aria-hidden="true">+</span></button>`).join("")}</div>
+    ${cart.length ? `<h2>Deine Bestellung</h2><div class="cart">${cart.map((it, i) => `<div class="line"><span class="txt"><b class="num">${it.qty}×</b> ${esc(labelOf(it))} · ${esc(it.spice)}<br><span class="muted small num">${chf(unit(it) * it.qty)}</span></span><button class="x" data-del="${i}" aria-label="Entfernen">Entfernen</button></div>`).join("")}</div>
+    <h2><label for="name">Dein Vorname</label></h2>
+    <input type="text" id="name" autocomplete="given-name" maxlength="20" placeholder="z.B. Andrea" value="${esc(name)}">
+    <p class="note" style="margin-top:12px">Bezahlt wird am Tresen mit TWINT oder bar. Wir speichern nur deinen Vornamen und die Bestellung und löschen beides am Ende des Tages.</p>` : `<p class="muted small" style="margin-top:16px">Tippe auf ein Gericht, um es zu wählen.</p>`}
+  </div>
+  ${cart.length ? `<div class="bar"><div class="in"><span class="sum num">${chf(cartTotal())}</span><button class="btn primary big" id="send">Bestellung abschicken</button></div></div>` : ""}`;
+}
+
+function vTicket(o) {
+  const st = o?.status || "neu";
+  const ready = st === "fertig";
+  const step = { neu: 0, arbeit: 1, fertig: 2 }[st];
+  $("#app").innerHTML = `<div class="wrap">${header("Deine Bestellung")}
+    <div class="ticket ${ready ? "ready" : ""}">
+      <span class="label">${ready ? "Fertig, bitte abholen" : "Deine Nummer"}</span>
+      <span class="no">${o ? o.no : "…"}</span>
+      ${o ? `<span style="font-weight:700;font-size:1.1rem">${esc(o.name)}</span>` : ""}
+      <div class="steps"><div class="${step >= 0 ? "on" : ""}">Eingegangen</div><div class="${step >= 1 ? "on" : ""}">In Arbeit</div><div class="${step >= 2 ? "on" : ""}">Fertig</div></div>
+    </div>
+    ${o ? `<h2>Bestellt</h2><div class="cart">${o.items.map(it => `<div class="line"><span class="txt"><b class="num">${it.qty}×</b> ${esc(it.label)} · ${esc(it.spice)}</span><span class="num">${chf(it.price * it.qty)}</span></div>`).join("")}</div>
+    <p style="font-family:var(--f-display);font-weight:800;font-size:1.3rem;text-align:right" class="num">Total ${chf(o.total)}</p>
+    <p class="note">${ready ? "Komm an den Tresen und nenne deine Nummer." : "Bezahlt wird am Tresen mit TWINT oder bar. Wir rufen deine Nummer auf, sobald dein Essen bereit ist. Diese Seite aktualisiert sich von selbst."}</p>` : `<p class="muted">Bestellung nicht mehr gefunden. Sie wurde vermutlich am Ende des Tages gelöscht.</p>`}
+    <div style="margin-top:16px">${kiosk ? `<button class="btn primary big" id="newOrder">Fertig <span class="num" id="kioskCount"></span></button>` : `<button class="btn big" id="newOrder">Neue Bestellung</button>`}</div>
+  </div>`;
+}
+
+function showTicket(id) {
+  current = id;
+  if (!kiosk) ls.set("ct-mine", { day: today(), id });
+  unwatch?.();
+  let last = null;
+  unwatch = Store.watchOrder(id, o => {
+    if (last && o && last !== "fertig" && o.status === "fertig") { navigator.vibrate?.([200, 100, 200]); }
+    last = o?.status; vTicket(o);
+    if (kiosk) startKioskReset();
+  });
+}
+function startKioskReset() {
+  if (kioskTimer) return;
+  let left = KIOSK_RESET_S;
+  const tick = () => { const el = $("#kioskCount"); if (el) el.textContent = `(${left})`; if (left-- <= 0) resetCustomer(); };
+  tick(); kioskTimer = setInterval(tick, 1000);
+}
+function resetCustomer() {
+  clearInterval(kioskTimer); kioskTimer = null; unwatch?.(); unwatch = null; current = null; cart = []; draft = null;
+  if (!kiosk) ls.set("ct-mine", null);
+  renderSheet(); vOrder(); scrollTo(0, 0);
+}
+
+function openSheet(dishId) {
+  draft = { dish: dishId, protein: M.proteins[0]?.id, size: "klein", spice: M.spices[0], qty: 1 };
+  renderSheet();
+}
+function renderSheet() {
+  if (!draft) { $("#sheetRoot").innerHTML = ""; return; }
+  const seg = (key, items, cls = "") => `<div class="seg ${cls}" role="group">${items.map(([v, t, sub]) => `<button type="button" data-set="${key}" data-v="${esc(v)}" aria-pressed="${draft[key] === v}">${esc(t)}${sub ? `<small>${sub}</small>` : ""}</button>`).join("")}</div>`;
+  $("#sheetRoot").innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="Menü wählen">
+    <div class="head"><span style="font-family:var(--f-display);font-weight:600;font-size:1.3rem">${esc(dishOf(draft.dish).name)}</span><button class="btn ghost sm" id="closeSheet">Abbrechen</button></div>
+    <div class="field"><span class="label">Mit</span>${seg("protein", M.proteins.map(x => [x.id, x.name, `${x.small}.– / ${x.large}.–`]))}</div>
+    <div class="field"><span class="label">Grösse</span>${seg("size", [["klein", "klein"], ["gross", "gross"]])}</div>
+    <div class="field"><span class="label">Schärfe</span>${seg("spice", M.spices.map(s => [s, s]), "spice")}</div>
+    <div class="head" style="align-items:center"><div class="stepper"><button type="button" id="minus" aria-label="weniger">−</button><span class="num">${draft.qty}</span><button type="button" id="plus" aria-label="mehr">+</button></div>
+      <span class="num" style="font-family:var(--f-display);font-weight:800;font-size:1.2rem">${chf(unit(draft) * draft.qty)}</span></div>
+    <button class="btn primary big" id="confirmAdd">Zur Bestellung hinzufügen</button>
+  </div></div>`;
+}
+
+async function send() {
+  const name = ($("#name")?.value || "").trim();
+  if (!name) { $("#name").focus(); return toast("Bitte deinen Vornamen eingeben"); }
+  if (!cart.length) return;
+  const btn = $("#send"); btn.disabled = true; btn.textContent = "Wird gesendet …";
+  const items = cart.map(it => ({ ...it, label: labelOf(it), price: unit(it) }));
+  try {
+    const { id } = await Store.submit({ name, items, total: cartTotal(), src: kiosk ? "kiosk" : "qr" });
+    if (!kiosk) ls.set("ct-name", name);
+    cart = []; showTicket(id); scrollTo(0, 0);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = "Bestellung abschicken";
+    toast("Senden hat nicht geklappt. Bitte nochmals versuchen.");
+  }
+}
+
+/* =========================================================================
+   Küchenanzeige
+   ========================================================================= */
+let kUnlocked = false, kOrders = [], kSeen = null, kShowDone = false, kUnwatch = null, audio = null, soundOn = false, wake = null;
+
+function beep() {
+  if (!soundOn || !audio) return;
+  const t = audio.currentTime;
+  [[880, 0], [1175, .18], [880, .36]].forEach(([f, d]) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(audio.destination);
+    g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.5, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .16);
+    o.start(t + d); o.stop(t + d + .18);
+  });
+}
+function enableSound() {
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); soundOn = true; } catch (e) { soundOn = false; }
+  try { navigator.wakeLock?.request("screen").then(w => wake = w).catch(() => {}); } catch (e) {}
+}
+const ago = t => { const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? "gerade eben" : `vor ${m} Min.`; };
+
+function vPin() {
+  $("#app").innerHTML = `<div class="wrap">${header("Küche")}
+    <form id="pinForm" class="stack" style="max-width:320px">
+      <label class="label" for="pin">PIN</label>
+      <input type="password" id="pin" inputmode="numeric" autocomplete="off" maxlength="8">
+      <button class="btn primary big" type="submit">Küche öffnen</button>
+      ${Store.mode === "test" ? `<p class="note">Testmodus: Die PIN ist ${TEST_PIN}.</p>` : ""}
+    </form></div>`;
+  $("#pin").focus();
+}
+function vKitchen() {
+  const open = kOrders.filter(o => o.status !== "fertig").sort((a, b) => a.no - b.no);
+  const done = kOrders.filter(o => o.status === "fertig").sort((a, b) => b.no - a.no);
+  const dishCount = {};
+  open.forEach(o => o.items.forEach(it => dishCount[it.label] = (dishCount[it.label] || 0) + it.qty));
+  const fresh = kSeen ? open.filter(o => !kSeen.has(o.id)).map(o => o.id) : [];
+  $("#app").innerHTML = `<div class="wrap wide">
+    <header><img src="icons/icon-192.png" alt=""><div class="t"><h1>Küche</h1><p>${new Date().toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long" })}</p></div>
+      <button class="btn sm ${soundOn ? "" : "chili"}" id="sound">${soundOn ? "Ton ist an" : "Ton einschalten"}</button></header>
+    <div class="stats" style="margin-bottom:14px">
+      <div><span class="label">Offen</span><strong>${open.length}</strong></div>
+      <div><span class="label">Fertig heute</span><strong>${done.length}</strong></div>
+      <div><span class="label">Umsatz heute</span><strong>${chf(kOrders.reduce((s, o) => s + o.total, 0))}</strong></div>
+    </div>
+    ${Object.keys(dishCount).length ? `<p class="note" style="margin:0 0 14px"><b>Noch zu kochen:</b> ${Object.entries(dishCount).map(([l, n]) => `${n}× ${esc(l)}`).join(" · ")}</p>` : ""}
+    ${open.length ? `<div class="kgrid">${open.map(o => `<article class="ko ${o.status} ${fresh.includes(o.id) ? "fresh" : ""}">
+        <div class="top"><span class="no">${o.no}</span><span class="who">${esc(o.name)}</span><span class="pill ${o.status}">${o.status === "neu" ? "Neu" : "In Arbeit"}</span></div>
+        <ul>${o.items.map(it => `<li><b>${it.qty}×</b> ${esc(it.label)} <span class="pill ${it.spice === "basisscharf" ? "neu" : "hot"}">${esc(it.spice)}</span></li>`).join("")}</ul>
+        <div class="muted small num">${chf(o.total)} · ${ago(o.t)}${o.src === "kiosk" ? " · Tablet" : ""}</div>
+        <div class="acts">${o.status === "neu" ? `<button class="btn" data-st="arbeit" data-id="${o.id}">In Arbeit</button>` : ""}<button class="btn primary" data-st="fertig" data-id="${o.id}">Fertig</button></div>
+      </article>`).join("")}</div>`
+      : `<div class="empty"><img src="icons/icon-512.png" alt=""><p>Keine offenen Bestellungen.</p></div>`}
+    ${done.length ? `<h2><button class="btn ghost sm" id="toggleDone">${kShowDone ? "Erledigte ausblenden" : `Erledigte anzeigen (${done.length})`}</button></h2>
+      ${kShowDone ? `<div class="done">${done.map(o => `<div class="row"><b class="num">${o.no}</b><span>${esc(o.name)} · ${o.items.map(it => `${it.qty}× ${esc(it.label)}`).join(", ")}</span><button class="btn sm" data-st="arbeit" data-id="${o.id}">Zurückholen</button></div>`).join("")}</div>` : ""}` : ""}
+    ${Store.mode === "test" ? `<p style="margin-top:28px"><button class="btn sm ghost" id="clearDay">Testbestellungen löschen</button><span id="clearConfirm"></span></p>` : ""}
+  </div>`;
+  if (kSeen && fresh.length) beep();
+  kSeen = new Set(open.map(o => o.id).concat(done.map(o => o.id)));
+}
+function startKitchen() {
+  kUnlocked = true; ss.set("ct-k", "1"); enableSound();
+  kUnwatch?.(); kUnwatch = Store.watchDay(list => { kOrders = list; vKitchen(); });
+  setInterval(() => { if (route() === "kueche" && kUnlocked) vKitchen(); }, 30000); // "vor x Min." aktualisieren
+}
+
+/* =========================================================================
+   Navigation & Ereignisse
+   ========================================================================= */
+const route = () => (location.hash || "").replace("#", "") === "kueche" ? "kueche" : "kunde";
+function renderTestbar() {
+  if (Store.mode !== "test") return;
+  const k = route() === "kueche";
+  $("#testRoot").innerHTML = `<div class="testbar"><span><b>Testmodus.</b> Bestellungen bleiben in diesem Browser. Öffne Kunde und Küche in zwei Tabs oder wechsle hier.</span>
+    <a class="btn sm ${k ? "" : "primary"}" href="#kunde">Kunde</a><a class="btn sm ${k ? "primary" : ""}" href="#kueche">Küche</a></div>`;
+}
+function render() {
+  renderTestbar();
+  draft = null; renderSheet();
+  if (route() === "kueche") {
+    kiosk = false;
+    if (kUnlocked || ss.get("ct-k") === "1") { if (!kUnlocked) startKitchen(); else vKitchen(); } else vPin();
+    return;
+  }
+  kUnwatch?.(); kUnwatch = null; kUnlocked = false;
+  kiosk = new URLSearchParams(location.search).has("kiosk") || location.hash === "#kiosk";
+  const mine = kiosk ? null : ls.get("ct-mine", null);
+  if (current) showTicket(current);
+  else if (mine && mine.day === today()) showTicket(mine.id);
+  else vOrder();
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button,a");
+  if (!t) { if (e.target.id === "scrim") { draft = null; renderSheet(); } return; }
+  const d = t.dataset;
+  if (d.dish) return openSheet(d.dish);
+  if (d.set) { draft[d.set] = d.v; return renderSheet(); }
+  if (d.del) { cart.splice(+d.del, 1); return vOrder(); }
+  if (d.st) { Store.setStatus(d.id, d.st); if (d.st === "fertig") toast(`Nr. ${kOrders.find(o => o.id === d.id)?.no} ist fertig`); return; }
+  switch (t.id) {
+    case "plus": draft.qty++; return renderSheet();
+    case "minus": draft.qty = Math.max(1, draft.qty - 1); return renderSheet();
+    case "closeSheet": draft = null; return renderSheet();
+    case "confirmAdd": cart.push(draft); draft = null; renderSheet(); vOrder(); return toast("Hinzugefügt");
+    case "send": return send();
+    case "newOrder": return resetCustomer();
+    case "sound": enableSound(); beep(); return vKitchen();
+    case "toggleDone": kShowDone = !kShowDone; return vKitchen();
+    case "clearDay": $("#clearConfirm").innerHTML = ` Alle löschen? <button class="btn sm chili" id="clearYes">Ja, löschen</button>`; return;
+    case "clearYes": kSeen = null; return Store.clearDay();
+  }
+});
+document.addEventListener("submit", e => {
+  if (e.target.id !== "pinForm") return;
+  e.preventDefault();
+  if ($("#pin").value === TEST_PIN) startKitchen();
+  else { $("#pin").value = ""; toast("PIN falsch"); }
+});
+addEventListener("hashchange", render);
+
+loadMenu().then(m => { M = m; render(); });
+render();
+if ("serviceWorker" in navigator && location.protocol === "https:" && !location.hostname.endsWith("claude.ai")) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
