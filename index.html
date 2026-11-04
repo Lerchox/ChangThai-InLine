@@ -276,7 +276,7 @@ let kiosk = false;
 let cart = [];       // [{dish, protein, size, spice, qty}]
 let draft = null;    // offenes Auswahlfenster
 let current = null;  // eigene Bestellung, die gerade angezeigt wird
-let unwatch = null, kioskTimer = null;
+let unwatch = null, kioskTimer = null, unwatchMine = null, mineBanner = "";
 
 const dishOf = id => M.dishes.find(d => d.id === id) || { short: "?", name: "?", join: "" };
 const protOf = id => M.proteins.find(p => p.id === id) || { name: "?", msg: "?", small: 0, large: 0 };
@@ -291,8 +291,8 @@ function header(sub) {
 
 function vOrder() {
   const sub = M.week ? `Menü der Woche · ${M.week}` : "Bestellen beim Anstehen";
-  const name = $("#name")?.value ?? (kiosk ? "" : ls.get("ct-name", ""));
-  $("#app").innerHTML = `<div class="wrap">${header(sub)}
+  const name = $("#name")?.value ?? "";
+  $("#app").innerHTML = `<div class="wrap">${header(sub)}<div id="mineRoot">${mineBanner}</div>
     <p style="margin:0 0 12px">Bestell schon jetzt. Du bekommst eine Nummer, bezahlst am Tresen und holst dein Essen ab, wenn wir deine Nummer aufrufen.</p>
     <div class="stack">${M.dishes.map(d => `<button class="dish" data-dish="${esc(d.id)}"><span><b>${esc(d.name)}</b><span class="muted small">ab ${minPrice()}.– · klein oder gross · mit Fleisch, Tofu oder Vegi</span></span><span class="plus" aria-hidden="true">+</span></button>`).join("")}</div>
     ${cart.length ? `<h2>Deine Bestellung</h2><div class="cart">${cart.map((it, i) => `<div class="line"><span class="txt"><b class="num">${it.qty}×</b> ${esc(labelOf(it))} · ${esc(it.spice)}<br><span class="muted small num">${chf(unit(it) * it.qty)}</span></span><button class="x" data-del="${i}" aria-label="Entfernen">Entfernen</button></div>`).join("")}</div>
@@ -323,6 +323,7 @@ function vTicket(o) {
 
 function showTicket(id) {
   current = id;
+  unwatchMine?.(); unwatchMine = null; mineBanner = "";
   if (!kiosk) ls.set("ct-mine", { day: today(), id });
   unwatch?.();
   let last = null;
@@ -340,8 +341,7 @@ function startKioskReset() {
 }
 function resetCustomer() {
   clearInterval(kioskTimer); kioskTimer = null; unwatch?.(); unwatch = null; current = null; cart = []; draft = null;
-  if (!kiosk) ls.set("ct-mine", null);
-  renderSheet(); vOrder(); scrollTo(0, 0);
+  renderSheet(); vOrder(); if (!kiosk) watchMine(ls.get("ct-mine", null)); scrollTo(0, 0);
 }
 
 function openSheet(dishId) {
@@ -370,7 +370,6 @@ async function send() {
   const items = cart.map(it => ({ ...it, label: labelOf(it), price: unit(it) }));
   try {
     const { id } = await Store.submit({ name, items, total: cartTotal(), src: kiosk ? "kiosk" : "qr" });
-    if (!kiosk) ls.set("ct-name", name);
     cart = []; showTicket(id); scrollTo(0, 0);
   } catch (e) {
     btn.disabled = false; btn.textContent = "Bestellung abschicken";
@@ -465,9 +464,19 @@ function render() {
   kUnwatch?.(); kUnwatch = null; kUnlocked = false;
   kiosk = new URLSearchParams(location.search).has("kiosk") || location.hash === "#kiosk";
   const mine = kiosk ? null : ls.get("ct-mine", null);
-  if (current) showTicket(current);
-  else if (mine && mine.day === today()) showTicket(mine.id);
-  else vOrder();
+  if (current) return showTicket(current);
+  vOrder(); watchMine(mine);
+}
+// Eine offene eigene Bestellung wird nur als Hinweis angezeigt; die Startseite bleibt das Bestellformular.
+function watchMine(mine) {
+  unwatchMine?.(); unwatchMine = null; mineBanner = "";
+  if (!mine || mine.day !== today()) return;
+  unwatchMine = Store.watchOrder(mine.id, o => {
+    mineBanner = o && o.status !== "fertig"
+      ? `<button class="line" data-showmine="${esc(o.id)}" style="width:100%;border:0;text-align:left;margin-bottom:12px"><span class="txt"><b>Deine Bestellung Nr. ${o.no}</b><br><span class="small">${o.status === "arbeit" ? "Wird zubereitet" : "Eingegangen"} · Status anzeigen</span></span><span aria-hidden="true">›</span></button>`
+      : "";
+    const el = $("#mineRoot"); if (el) el.innerHTML = mineBanner;
+  });
 }
 
 document.addEventListener("click", e => {
@@ -475,6 +484,7 @@ document.addEventListener("click", e => {
   if (!t) { if (e.target.id === "scrim") { draft = null; renderSheet(); } return; }
   const d = t.dataset;
   if (d.dish) return openSheet(d.dish);
+  if (d.showmine) return showTicket(d.showmine);
   if (d.set) { draft[d.set] = d.v; return renderSheet(); }
   if (d.del) { cart.splice(+d.del, 1); return vOrder(); }
   if (d.st) { Store.setStatus(d.id, d.st); if (d.st === "fertig") toast(`Nr. ${kOrders.find(o => o.id === d.id)?.no} ist fertig`); return; }
