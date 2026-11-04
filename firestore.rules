@@ -1,14 +1,14 @@
 rules_version = '2';
 // Sicherheitsregeln für ChangThai-InLine. In der Firebase-Konsole unter Firestore → Regeln einfügen.
-// KUECHE: die E-Mail des Küchen-Benutzers (Authentication → Users), gleich wie KITCHEN_EMAIL in index.html.
+// Die E-Mail in isKitchen() muss gleich sein wie KITCHEN_EMAIL in index.html.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function isKitchen() { return signedIn() && request.auth.token.email == "KUECHE"; }
+    function isKitchen() { return signedIn() && request.auth.token.email == "kueche@changthai.ch"; }
 
     match /days/{day} {
-      // Tageszähler: nur um genau 1 erhöhen
-      allow read: if isKitchen();
+      // Tageszähler: lesen darf jeder Angemeldete, ändern nur um genau 1
+      allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.keys().hasOnly(["seq"]) && request.resource.data.seq == 1;
       allow update: if signedIn() && request.resource.data.keys().hasOnly(["seq"]) && request.resource.data.seq == resource.data.seq + 1;
       allow delete: if isKitchen();

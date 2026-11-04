@@ -149,7 +149,7 @@ const FIREBASE_CONFIG = {
 };
 // Anmeldename der Küche in Firebase (Authentication → Users). Das Passwort ist die Küchen-PIN.
 // Solange leer: Testmodus, d.h. Bestellungen bleiben in diesem Browser.
-const KITCHEN_EMAIL = "";
+const KITCHEN_EMAIL = "kueche@changthai.ch";
 const FIREBASE = KITCHEN_EMAIL ? FIREBASE_CONFIG : null;
 // Küchen-PIN im Testmodus.
 const TEST_PIN = "1234";
@@ -401,7 +401,7 @@ function vPin() {
   $("#app").innerHTML = `<div class="wrap">${header("Küche")}
     <form id="pinForm" class="stack" style="max-width:320px">
       <label class="label" for="pin">PIN</label>
-      <input type="password" id="pin" inputmode="numeric" autocomplete="off" maxlength="8">
+      <input type="password" id="pin" inputmode="numeric" autocomplete="current-password" maxlength="32">
       <button class="btn primary big" type="submit">Küche öffnen</button>
       ${Store.mode === "test" ? `<p class="note">Testmodus: Die PIN ist ${TEST_PIN}.</p>` : ""}
     </form></div>`;
